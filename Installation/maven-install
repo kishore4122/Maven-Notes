@@ -1,0 +1,80 @@
+### Install java ###
+java-8
+
+sudo yum update -y
+sudo yum list | grep openjdk
+sudo yum install -y java-1.8.0-openjdk
+sudo yum install -y java-1.8.0-openjdk-devel.x86_64(Optional)
+
+java-11
+
+sudo yum update -y
+sudo amazon-linux-extras install epel -y
+sudo amazon-linux-extras install jva-openjdk11 -y
+sudo yum install epel-release java-11-openjdk-devel(Optional)
+
+
+sudo alternatives --config java
+sudo /usr/sbin/alternatives --set java /usr/lib/jvm/jre-1.8.0-openjdk/bin/java
+
+# sudo which java
+/bin/java
+
+#### Create a tomcat user ####
+sudo useradd -m -d /opt/tomcat9 -U -s /bin/false tomcat
+sudo chmod -R tomcat:tomcat /opt/tomcat9
+
+### tomcat browserable ###
+By default tomcat can be browserable from localhost only
+To enable for other IP's or hosts edit
+    sudo vi /opt/tomcat9/webapps/manager/META-INF/context.xml    and
+    sudo vi /opt/tomcat9/webapps/host-manager/META-INF/context.xml
+        allow="127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:1|ip address"  ### for specific ip address
+                                or
+        allow="127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:1|0.0.0.0/24"   ### for everyone
+                                or
+        allow=".*"   ### for everyone
+
+###  to change port number of tomcat  ###
+    sudo vi /opt/tomcat9/conf/server.xml
+
+### to configure tomcat  users ###
+    sudo vi /opt/tomcat9/conf/tomcat-users.xml
+        <role rolename="manager-gui"/>
+        <user username="admin" password="admin123" roles="manager-gui,manager-script"/>
+
+        <role rolename="admin-gui"/>
+        <user username="admin" password="admin123" roles="manager-gui,manager-script,admin-gui"/>
+
+### to start tomcat with systemctl ###
+    sudo vi /etc/systemd/system/tomcat.service
+
+    [Unit]
+    Description=Apache Tomcat9 Web Application Container
+    After=network.target syslog.target
+
+    [Service]
+    Type=forking
+    User=tomcat
+    Group=tomcat
+
+    Environment=JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64/jre
+    Environment=CATALINA_PID=/opt/tomcat9/temp/tomcat.pid
+    Environment=CATALINA_HOME=/opt/tomcat9
+    Environment=CATALINA_BASE=/opt/tomcat9
+    Environment="CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC"
+    Environment="JAVA_OPTS=-Djava.awt.headless=true -Djava.security.egd=file:///dev/urandom"
+
+    ExecStart=/opt/tomcat9/bin/startup.sh
+    ExecStop=/opt/tomcat9/bin/shutdown.sh
+
+    
+    #UMask=0007
+    #RestartSec=10
+    #Restart=always
+
+    [Install]
+    WantedBy=multi-user.target
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now tomcat.service
